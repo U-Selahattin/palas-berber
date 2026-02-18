@@ -208,7 +208,7 @@ export default function RandevuPage() {
     !submitting;
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
+    <main className="min-h-screen bg-neutral-950 text-neutral-100 overflow-x-hidden">
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-neutral-950 to-neutral-950" />
@@ -238,7 +238,7 @@ export default function RandevuPage() {
 
           <div className="mt-12 grid gap-8 md:grid-cols-2">
             {/* LEFT */}
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0">
               <div>
                 <label className="text-sm font-medium text-neutral-200">
                   Hizmetler
@@ -326,21 +326,26 @@ export default function RandevuPage() {
               </div>
 
               {/* Date */}
-              <div>
-                <label htmlFor="dateInput" className="text-sm font-medium text-neutral-200">
-                  Tarih
-                </label>
+<div className="min-w-0">
+  <label
+    htmlFor="dateInput"
+    className="text-sm font-medium text-neutral-200"
+  >
+    Tarih
+  </label>
 
-                <input
-                  id="dateInput"
-                  name="dateInput"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="date-dark mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition
-                             focus:border-[rgba(43,89,71,.65)] focus:bg-white/10"
-                />
-              </div>
+  <input
+    id="dateInput"
+    name="dateInput"
+    type="date"
+    value={date}
+    onChange={(e) => setDate(e.target.value)}
+    className="date-dark mt-2 block w-full min-w-0 max-w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition
+               focus:border-[rgba(43,89,71,.65)] focus:bg-white/10"
+    style={{ colorScheme: "dark" }}
+  />
+</div>
+
 
               {/* Slots */}
               {services.length > 0 && date && (
