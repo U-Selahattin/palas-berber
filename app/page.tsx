@@ -68,7 +68,7 @@ export default function Home() {
                   title="Google yorumlarını görüntüle"
                 >
                   <Stars />
-                  <span className="text-neutral-200">5.0 • 136 Google yorumu</span>
+                  <span className="text-neutral-200">5.0 • +135 Google yorumu</span>
                 </a>
               </div>
 
