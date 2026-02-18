@@ -326,7 +326,7 @@ export default function RandevuPage() {
               </div>
 
               {/* Date */}
-<div className="min-w-0">
+<div>
   <label
     htmlFor="dateInput"
     className="text-sm font-medium text-neutral-200"
@@ -334,17 +334,20 @@ export default function RandevuPage() {
     Tarih
   </label>
 
-  <input
-    id="dateInput"
-    name="dateInput"
-    type="date"
-    value={date}
-    onChange={(e) => setDate(e.target.value)}
-    className="date-dark mt-2 block w-full min-w-0 max-w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition
-               focus:border-[rgba(43,89,71,.65)] focus:bg-white/10"
-    style={{ colorScheme: "dark" }}
-  />
+  <div className="relative w-full">
+    <input
+      id="dateInput"
+      name="dateInput"
+      type="date"
+      value={date}
+      onChange={(e) => setDate(e.target.value)}
+      className="w-full appearance-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-10 text-white outline-none transition
+                 focus:border-[rgba(43,89,71,.65)] focus:bg-white/10"
+      style={{ colorScheme: "dark" }}
+    />
+  </div>
 </div>
+
 
 
               {/* Slots */}
