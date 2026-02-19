@@ -15,49 +15,42 @@ function getRequestBaseUrl(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const reqUrl = new URL(req.url);
-  const code = reqUrl.searchParams.get("code");
-  const error = reqUrl.searchParams.get("error");
+  const url = new URL(req.url);
+  const code = url.searchParams.get("code");
+  const error = url.searchParams.get("error");
 
-  const baseUrl = getRequestBaseUrl(req);
+  const origin = getRequestBaseUrl(req);
 
   if (error) {
     return NextResponse.redirect(
-      new URL(`/admin?connected=0&error=${encodeURIComponent(error)}`, baseUrl)
+      new URL(`/admin?connected=0&error=${encodeURIComponent(error)}`, origin)
     );
   }
 
   if (!code) {
     return NextResponse.redirect(
-      new URL(`/admin?connected=0&error=${encodeURIComponent("missing_code")}`, baseUrl)
+      new URL(`/admin?connected=0&error=${encodeURIComponent("missing_code")}`, origin)
     );
   }
 
   try {
-    // ✅ On crée le client DIRECTEMENT avec le bon redirectUri
-    const oauth2Client = getOAuthClient(baseUrl);
-
+    const oauth2Client = getOAuthClient(origin);
     const { tokens } = await oauth2Client.getToken(code);
 
-    // ✅ garder refresh_token si Google ne le renvoie pas
-    const prev = loadTokens();
+    // si refresh_token absent, on garde l'ancien
+    const prev = await loadTokens();
     const merged = {
       ...(prev ?? {}),
       ...tokens,
       refresh_token: tokens.refresh_token ?? prev?.refresh_token,
     };
 
-    saveTokens(merged);
+    await saveTokens(merged);
 
-    return NextResponse.redirect(new URL("/admin?connected=1", baseUrl));
-  } catch (e: any) {
-    console.error("OAuth callback error:", e?.message || e);
-
+    return NextResponse.redirect(new URL("/admin?connected=1", origin));
+  } catch (e) {
     return NextResponse.redirect(
-      new URL(
-        `/admin?connected=0&error=${encodeURIComponent("token_exchange_failed")}`,
-        baseUrl
-      )
+      new URL(`/admin?connected=0&error=${encodeURIComponent("token_exchange_failed")}`, origin)
     );
   }
 }

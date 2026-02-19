@@ -4,30 +4,27 @@ import fs from "fs";
 import path from "path";
 
 const TOKEN_PATH = path.join(process.cwd(), "data", "google-token.json");
-const KV_KEY = "google:oauth_tokens";
+const UPSTASH_KEY = "google:oauth_tokens";
 
 function normalizeBaseUrl(url: string) {
   return url.replace(/\/$/, "");
 }
 
-function getBaseUrl(baseUrlOverride?: string) {
-  // ✅ priorité : override -> NEXT_PUBLIC_BASE_URL -> VERCEL_URL
-  const envBaseUrl =
-    baseUrlOverride ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
-
-  return normalizeBaseUrl(envBaseUrl || "");
+function getBaseUrlFromEnv() {
+  // priorité : NEXT_PUBLIC_BASE_URL -> VERCEL_URL
+  if (process.env.NEXT_PUBLIC_BASE_URL) return normalizeBaseUrl(process.env.NEXT_PUBLIC_BASE_URL);
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "";
 }
 
 export function getOAuthClient(baseUrlOverride?: string) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const baseUrl = getBaseUrl(baseUrlOverride);
 
+  const baseUrl = normalizeBaseUrl(baseUrlOverride || getBaseUrlFromEnv());
   if (!clientId || !clientSecret || !baseUrl) {
     throw new Error(
-      "ENV manquantes: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / NEXT_PUBLIC_BASE_URL"
+      "ENV manquantes: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / NEXT_PUBLIC_BASE_URL (ou VERCEL_URL)"
     );
   }
 
@@ -50,18 +47,33 @@ export function getGoogleAuthUrl(baseUrlOverride?: string) {
   });
 }
 
-/** ---------------------------
- * Storage (KV en prod / File en local)
- * -------------------------- */
+/* ---------------------------
+   Storage helpers
+--------------------------- */
 
-async function hasKV() {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+function hasUpstash() {
+  return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
+async function upstashGet() {
+  const { Redis } = await import("@upstash/redis");
+  const redis = Redis.fromEnv();
+  return redis.get<any>(UPSTASH_KEY);
+}
+
+async function upstashSet(tokens: any) {
+  const { Redis } = await import("@upstash/redis");
+  const redis = Redis.fromEnv();
+  await redis.set(UPSTASH_KEY, tokens);
+}
+
+/* ---------------------------
+   Public API
+--------------------------- */
+
 export async function saveTokens(tokens: any) {
-  if (await hasKV()) {
-    const { kv } = await import("@vercel/kv");
-    await kv.set(KV_KEY, tokens);
+  if (hasUpstash()) {
+    await upstashSet(tokens);
     return;
   }
 
@@ -71,9 +83,8 @@ export async function saveTokens(tokens: any) {
 }
 
 export async function loadTokens() {
-  if (await hasKV()) {
-    const { kv } = await import("@vercel/kv");
-    const t = await kv.get<any>(KV_KEY);
+  if (hasUpstash()) {
+    const t = await upstashGet();
     if (!t || Object.keys(t).length === 0) return null;
     return t;
   }
@@ -81,6 +92,7 @@ export async function loadTokens() {
   // local fallback
   if (!fs.existsSync(TOKEN_PATH)) return null;
   const raw = fs.readFileSync(TOKEN_PATH, "utf-8");
+
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || Object.keys(parsed).length === 0) return null;
@@ -91,15 +103,15 @@ export async function loadTokens() {
 }
 
 export async function isConnectedToGoogle() {
-  const t = await loadTokens();
-  return Boolean(t);
+  return Boolean(await loadTokens());
 }
 
 export async function getAuthorizedCalendar() {
   const tokens = await loadTokens();
   if (!tokens) return null;
 
-  const oauth2Client = getOAuthClient(); // ✅ base url auto
+  // redirectUri pas important ici, mais OAuth client doit être construit correctement
+  const oauth2Client = getOAuthClient();
   oauth2Client.setCredentials(tokens);
 
   return google.calendar({ version: "v3", auth: oauth2Client });

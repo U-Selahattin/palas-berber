@@ -33,12 +33,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Tarih gerekli." }, { status: 400 });
     }
 
-    // ✅ ❌ BLOQUER DIMANCHE (0 = Sunday)
+    // ✅ Bloquer dimanche (0 = Sunday)
     const selectedDate = new Date(`${dateISO}T00:00:00+03:00`);
-    const day = selectedDate.getDay();
-
-    if (day === 0) {
-      // dimanche = fermé → aucun créneau
+    if (selectedDate.getDay() === 0) {
       return NextResponse.json({ slots: [] }, { status: 200 });
     }
 
@@ -58,19 +55,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Hizmet bulunamadı." }, { status: 400 });
     }
 
-    const totalDurationMin = services.reduce(
-      (sum, s) => sum + s!.durationMin,
-      0
-    );
-
+    const totalDurationMin = services.reduce((sum, s) => sum + s!.durationMin, 0);
     if (!totalDurationMin || totalDurationMin < 1) {
-      return NextResponse.json(
-        { error: "Hizmet süresi geçersiz." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Hizmet süresi geçersiz." }, { status: 400 });
     }
 
-    const calendar = getAuthorizedCalendar();
+    // ✅ IMPORTANT : await
+    const calendar = await getAuthorizedCalendar();
     if (!calendar) {
       return NextResponse.json(
         { error: "Google Takvim bağlı değil. /admin üzerinden bağlayın." },
@@ -101,12 +92,8 @@ export async function POST(req: Request) {
         const s = new Date(b.start!);
         const e = new Date(b.end!);
 
-        const startMin = Math.round(
-          (s.getTime() - dayStart.getTime()) / 60000
-        );
-        const endMin = Math.round(
-          (e.getTime() - dayStart.getTime()) / 60000
-        );
+        const startMin = Math.round((s.getTime() - dayStart.getTime()) / 60000);
+        const endMin = Math.round((e.getTime() - dayStart.getTime()) / 60000);
 
         return {
           startMin: clamp(startMin, 0, 24 * 60),
@@ -124,20 +111,13 @@ export async function POST(req: Request) {
       const sMin = t;
       const eMin = t + totalDurationMin;
 
-      const overlap = busyRanges.some(
-        (b) => sMin < b.endMin && eMin > b.startMin
-      );
-
+      const overlap = busyRanges.some((b) => sMin < b.endMin && eMin > b.startMin);
       if (!overlap) slots.push(minutesToHHMM(sMin));
     }
 
     return NextResponse.json({ slots }, { status: 200 });
   } catch (err: any) {
     console.error("availability error:", err);
-
-    return NextResponse.json(
-      { error: err?.message || "Sunucu hatası." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err?.message || "Sunucu hatası." }, { status: 500 });
   }
 }

@@ -154,7 +154,7 @@ export async function POST(req: Request) {
 
     /* ---------------- GOOGLE CHECK ---------------- */
 
-    const calendar = getAuthorizedCalendar();
+    const calendar = await getAuthorizedCalendar();
     if (!calendar)
       return NextResponse.json(
         { error: "Google Takvim bağlı değil." },

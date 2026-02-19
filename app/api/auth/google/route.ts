@@ -5,10 +5,8 @@ import { getGoogleAuthUrl } from "@/lib/google";
 export const runtime = "nodejs";
 
 function getRequestBaseUrl(req: Request) {
-  // si tu as NEXT_PUBLIC_BASE_URL sur Vercel => parfait
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
 
-  // fallback Vercel/proxy
   const host = req.headers.get("x-forwarded-host");
   const proto = req.headers.get("x-forwarded-proto") ?? "https";
   if (host) return `${proto}://${host}`;
