@@ -18,26 +18,25 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const error = url.searchParams.get("error");
-
-  const origin = getRequestBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
 
   if (error) {
     return NextResponse.redirect(
-      new URL(`/admin?connected=0&error=${encodeURIComponent(error)}`, origin)
+      new URL(`/admin?connected=0&error=${encodeURIComponent(error)}`, baseUrl)
     );
   }
 
   if (!code) {
     return NextResponse.redirect(
-      new URL(`/admin?connected=0&error=${encodeURIComponent("missing_code")}`, origin)
+      new URL(`/admin?connected=0&error=${encodeURIComponent("missing_code")}`, baseUrl)
     );
   }
 
   try {
-    const oauth2Client = getOAuthClient(origin);
+    const oauth2Client = getOAuthClient(baseUrl);
     const { tokens } = await oauth2Client.getToken(code);
 
-    // si refresh_token absent, on garde l'ancien
+    // garde refresh_token si Google ne le renvoie pas
     const prev = await loadTokens();
     const merged = {
       ...(prev ?? {}),
@@ -47,10 +46,10 @@ export async function GET(req: Request) {
 
     await saveTokens(merged);
 
-    return NextResponse.redirect(new URL("/admin?connected=1", origin));
+    return NextResponse.redirect(new URL("/admin?connected=1", baseUrl));
   } catch (e) {
     return NextResponse.redirect(
-      new URL(`/admin?connected=0&error=${encodeURIComponent("token_exchange_failed")}`, origin)
+      new URL(`/admin?connected=0&error=${encodeURIComponent("token_exchange_failed")}`, baseUrl)
     );
   }
 }

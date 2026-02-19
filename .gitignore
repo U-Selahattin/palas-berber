@@ -60,3 +60,5 @@ pnpm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+data/google-token.json
