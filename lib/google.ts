@@ -38,7 +38,13 @@ export function getGoogleAuthUrl(baseUrlOverride?: string) {
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
-    scope: ["https://www.googleapis.com/auth/calendar.events"],
+    scope: [
+  "https://www.googleapis.com/auth/calendar.readonly", // ✅ pour freebusy
+  "https://www.googleapis.com/auth/calendar.events",   // ✅ pour créer l’event
+  "openid",
+  "email",
+  "profile",
+],
   });
 }
 
