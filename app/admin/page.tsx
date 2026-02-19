@@ -2,13 +2,16 @@ import Link from "next/link";
 import { isConnectedToGoogle } from "@/lib/google";
 
 export const dynamic = "force-dynamic"; // ✅ important
+export const revalidate = 0;
 
-export default function AdminPage({
+export default async function AdminPage({
   searchParams,
 }: {
   searchParams: { connected?: string };
 }) {
-  const connected = isConnectedToGoogle();
+  const connected = await isConnectedToGoogle(); // ✅ FIX
+
+  const showConnectedBanner = searchParams.connected === "1";
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
@@ -34,7 +37,7 @@ export default function AdminPage({
             Google Takvim bağlantısını yönet.
           </p>
 
-          {searchParams.connected && (
+          {showConnectedBanner && (
             <div className="mt-8 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-200">
               Google Takvim başarıyla bağlandı ✅
             </div>
