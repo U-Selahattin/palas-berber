@@ -20,6 +20,25 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+// ✅ AJOUT: date "aujourd'hui" en YYYY-MM-DD (timezone Istanbul)
+function todayISOInTZ() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: TIMEZONE });
+}
+
+// ✅ AJOUT: minutes depuis minuit (timezone Istanbul)
+function nowMinutesInTZ() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const hh = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const mm = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+  return hh * 60 + mm;
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as {
@@ -31,6 +50,12 @@ export async function POST(req: Request) {
     const dateISO = body?.dateISO;
     if (!dateISO) {
       return NextResponse.json({ error: "Tarih gerekli." }, { status: 400 });
+    }
+
+    // ✅ AJOUT: bloquer les dates passées
+    const todayISO = todayISOInTZ();
+    if (dateISO < todayISO) {
+      return NextResponse.json({ slots: [] }, { status: 200 });
     }
 
     // ✅ Bloquer dimanche (0 = Sunday)
@@ -102,8 +127,24 @@ export async function POST(req: Request) {
       })
       .filter((r) => r.endMin > r.startMin);
 
-    const openMin = toMinutes(OPEN);
+    let openMin = toMinutes(OPEN);
     const closeMin = toMinutes(CLOSE);
+
+    // ✅ AJOUT: si c'est aujourd'hui, on enlève les créneaux passés
+    if (dateISO === todayISO) {
+      const nowMin = nowMinutesInTZ();
+
+      // on arrondit au prochain STEP_MIN (ex: 15:07 -> 15:15)
+      const rounded = Math.ceil(nowMin / STEP_MIN) * STEP_MIN;
+
+      // on doit aussi laisser le temps pour la durée du service
+      openMin = Math.max(openMin, rounded);
+
+      // si déjà trop tard dans la journée -> aucun slot
+      if (openMin + totalDurationMin > closeMin) {
+        return NextResponse.json({ slots: [] }, { status: 200 });
+      }
+    }
 
     const slots: string[] = [];
 
